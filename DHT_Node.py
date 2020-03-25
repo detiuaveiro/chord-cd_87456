@@ -5,6 +5,7 @@ import threading
 import logging
 import pickle
 from utils import dht_hash, contains_predecessor, contains_successor
+from FingerTable import FingerTable
 
 
 class DHT_Node(threading.Thread):
@@ -38,6 +39,7 @@ class DHT_Node(threading.Thread):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(timeout)
         self.logger = logging.getLogger("Node {}".format(self.id))
+        self.finger_table = FingerTable(self.successor_addr)
 
     def send(self, address, msg):
         """ Send msg to address. """
