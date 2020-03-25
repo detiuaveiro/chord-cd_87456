@@ -110,6 +110,9 @@ class DHT_Node(threading.Thread):
             # Update our successor
             self.successor_id = from_id
             self.successor_addr = addr
+        
+        self.finger_table.update_succ(self.successor_addr)
+
 
         # notify successor of our existence, so it can update its predecessor record
         args = {'predecessor_id': self.id, 'predecessor_addr': self.addr}
@@ -125,12 +128,14 @@ class DHT_Node(threading.Thread):
         """
         key_hash = dht_hash(key)
         self.logger.debug('Put: %s %s', key, key_hash)
+        # my responsability
         if contains_successor(self.id, self.successor_id, key_hash):
             self.keystore[key] = value
             self.send(address, {'method': 'ACK'})
         else:
             # send to DHT
-            self.send(self.successor_addr, {'method': 'PUT', 'args': {'key': key, 'value': value, 'client_address': address}})
+            dest_addr = self.finger_table.closest_preceding_node(key_hash)
+            self.send(dest_addr, {'method': 'PUT', 'args': {'key': key, 'value': value, 'client_address': address}})
 
 
     def get(self, key, address):
@@ -147,7 +152,8 @@ class DHT_Node(threading.Thread):
             self.send(address, {'method': 'ACK', 'args': value})
         else:
             # send to DHT
-            self.send(self.successor_addr, {'method': 'GET', 'args': {'key': key, 'client_address': address}})
+            dest_addr = self.finger_table.closest_preceding_node(key_hash)
+            self.send(dest_addr, {'method': 'GET', 'args': {'key': key, 'client_address': address}})
 
 
     def run(self):

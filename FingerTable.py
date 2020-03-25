@@ -2,17 +2,20 @@ from utils import dht_hash, contains_predecessor, contains_successor
 
 
 class FingerTable:
-    ft = []
 
     def __init__(self, succ_addr):
-        self.init_ft(succ_addr)
-
-    def init_ft(self, succ_addr):
-        ft.append(succ_addr)
+        self.ft = [succ_addr]
         for i in range(1, 10):
-            ft.append(None)
+            self.ft.append(None)
+
+    def update_succ(self, succ_addr):
+        print("Olá\n\n\n\n")
+        self.ft[0] = succ_addr
+
 
     def closest_preceding_node(self, node_id):
-        for entry in ft[::-1]:
-            if entry and dht_hash(entry) < node_id:
+        print(self.ft)
+        for entry in self.ft[::-1]:
+            if entry and dht_hash(entry.__str__()) < node_id:
+                print(entry)
                 return entry
