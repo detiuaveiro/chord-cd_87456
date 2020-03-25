@@ -128,8 +128,8 @@ class DHT_Node(threading.Thread):
             self.send(address, {'method': 'ACK'})
         else:
             # send to DHT
-            # Fill here
-            self.send(address, {'method': 'NACK'})
+            self.send(self.successor_addr, {'method': 'PUT', 'args': {'key': key, 'value': value, 'client_address': address}})
+
 
     def get(self, key, address):
         """ Retrieve value from DHT.
@@ -145,8 +145,8 @@ class DHT_Node(threading.Thread):
             self.send(address, {'method': 'ACK', 'args': value})
         else:
             # send to DHT
-            # Fill here
-            self.send(address, {'method': 'NACK'})
+            self.send(self.successor_addr, {'method': 'GET', 'args': {'key': key, 'client_address': address}})
+
 
     def run(self):
         self.socket.bind(self.addr)
@@ -177,8 +177,14 @@ class DHT_Node(threading.Thread):
                 elif output['method'] == 'NOTIFY':
                     self.notify(output['args'])
                 elif output['method'] == 'PUT':
+                    # if its a forward, send client addr
+                    if 'client_address' in output['args']:
+                        addr = output['args']['client_address']
                     self.put(output['args']['key'], output['args']['value'], addr)
                 elif output['method'] == 'GET':
+                    # if its a forward, send client addr
+                    if 'client_address' in output['args']:
+                        addr = output['args']['client_address']
                     self.get(output['args']['key'], addr)
                 elif output['method'] == 'PREDECESSOR':
                     # Reply with predecessor id
