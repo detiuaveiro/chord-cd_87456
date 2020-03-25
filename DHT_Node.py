@@ -111,7 +111,12 @@ class DHT_Node(threading.Thread):
             self.successor_id = from_id
             self.successor_addr = addr
         
-        self.finger_table.update_succ(self.successor_addr)
+        # update finger table
+        index = self.finger_table.get_update_index()
+        hash_id = (self.id + 2**(index-1))%1024
+        dest_addr = self.finger_table.closest_preceding_node(hash_id)
+        self.send(dest_addr, {'method': 'FIND_SUCC', 'args': { 'hash_id': hash_id, 'index': index, 'origin_addr': self.addr}})
+
 
 
         # notify successor of our existence, so it can update its predecessor record
@@ -155,6 +160,16 @@ class DHT_Node(threading.Thread):
             dest_addr = self.finger_table.closest_preceding_node(key_hash)
             self.send(dest_addr, {'method': 'GET', 'args': {'key': key, 'client_address': address}})
 
+    def update_ft(self, index, addr):
+        self.update_ft(index, addr)
+
+    def find_successor(self, hash_id, index, origin_addr):
+        if contains_successor(self.id, self.successor_id, hash_id):
+            self.send(origin_addr, {'method': 'UPDATE', 'args': {'index': index}})
+        else:
+            # send to DHT
+            dest_addr = self.finger_table.closest_preceding_node(hash_id)
+            self.send(dest_addr, {'method': 'FIND_SUCC', 'args': { 'hash_id': hash_id, 'index': index, 'origin_addr': origin_addr}})
 
     def run(self):
         self.socket.bind(self.addr)
@@ -200,6 +215,12 @@ class DHT_Node(threading.Thread):
                 elif output['method'] == 'STABILIZE':
                     # Initiate stabilize protocol
                     self.stabilize(output['args'], addr)
+                elif output['method'] == 'UPDATE':
+                    #update finger table
+                    self.update_ft(output['args']['index'], addr)
+                elif output['method'] == 'FIND_SUCC':
+                    #find successor
+                    self.find_successor(output['args']['hash_id'], output['args']['index'], output['args']['origin_addr'])
             else: #timeout occurred, lets run the stabilize algorithm
                 # Ask successor for predecessor, to start the stabilize process
                 self.send(self.successor_addr, {'method': 'PREDECESSOR'})
